@@ -3,7 +3,7 @@ import { Configuration, OpenAIApi } from "openai";
 import SSE from "../utils/sse";
 import { OpenAIMessage, Parameters } from "./types";
 import { backend } from "../backend";
-import { processMessage } from "./ih/ih-main";
+import { processMessage } from "../ih/ih-main";
 
 export const defaultModel = 'gpt-3.5-turbo';
 

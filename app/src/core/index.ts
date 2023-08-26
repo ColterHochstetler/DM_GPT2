@@ -13,6 +13,7 @@ import { Option } from './options/option';
 import { pluginMetadata } from './plugins/metadata';
 import { pluginRunner } from "./plugins/plugin-runner";
 import { createBasicPluginContext } from './plugins/plugin-context';
+import { processMessage } from './ih/ih-main';
 
 export const channel = new BroadcastChannel('chats');
 
@@ -133,30 +134,37 @@ export class ChatManager extends EventEmitter {
         }
     }
 
+
     public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
-
+        
+        // Process the user's message content with the Interaction-Handler
+        const processedContent = processMessage(userSubmittedMessage.content);
+        console.log("After processing:", processedContent);
+        
         if (!chat) {
             throw new Error('Chat not found');
         }
-
+    
         const message: Message = {
             id: uuidv4(),
             parentID: userSubmittedMessage.parentID,
             chatID: userSubmittedMessage.chatID,
             timestamp: Date.now(),
             role: 'user',
-            content: userSubmittedMessage.content,
+            content: processedContent,  // Use the modified content here
             done: true,
         };
-
+    
         this.doc.addMessage(message);
-
+    
         const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
         messages.push(message);
-
+    
         await this.getReply(messages, userSubmittedMessage.requestedParameters);
     }
+    
+    
 
     public async regenerate(message: Message, requestedParameters: Parameters) {
         const messages = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
