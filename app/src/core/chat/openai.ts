@@ -3,6 +3,7 @@ import { Configuration, OpenAIApi } from "openai";
 import SSE from "../utils/sse";
 import { OpenAIMessage, Parameters } from "./types";
 import { backend } from "../backend";
+import { processMessage } from "./ih/ih-main";
 
 export const defaultModel = 'gpt-3.5-turbo';
 
@@ -57,6 +58,10 @@ export async function createChatCompletion(messages: OpenAIMessage[], parameters
     if (!proxied && !parameters.apiKey) {
         throw new Error('No API key provided');
     }
+
+    console.log("Before processing:", messages[messages.length - 1].content);
+    messages[messages.length - 1].content = processMessage(messages[messages.length - 1].content);
+    console.log("After processing:", messages[messages.length - 1].content);
 
     const response = await fetch(endpoint + '/v1/chat/completions', {
         method: "POST",
