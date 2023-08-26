@@ -135,13 +135,9 @@ export class ChatManager extends EventEmitter {
     }
 
 
-    public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
+/*     public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
-        
-        // Process the user's message content with the Interaction-Handler
-        const processedContent = processMessage(userSubmittedMessage.content);
-        console.log("After processing:", processedContent);
-        
+
         if (!chat) {
             throw new Error('Chat not found');
         }
@@ -152,18 +148,50 @@ export class ChatManager extends EventEmitter {
             chatID: userSubmittedMessage.chatID,
             timestamp: Date.now(),
             role: 'user',
-            content: processedContent,  // Use the modified content here
+            content: userSubmittedMessage.content,  // Use the modified content here
+            done: true,
+        };
+    
+        this.doc.addMessage(message);
+
+        const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
+        messages.push(message);
+    
+        await this.getReply(messages, userSubmittedMessage.requestedParameters);
+    } */
+    
+    public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
+        const chat = this.doc.getYChat(userSubmittedMessage.chatID);
+    
+
+        if (!chat) {
+            throw new Error('Chat not found');
+        }
+    
+        const message: Message = {
+            id: uuidv4(),
+            parentID: userSubmittedMessage.parentID,
+            chatID: userSubmittedMessage.chatID,
+            timestamp: Date.now(),
+            role: 'user',
+            content: userSubmittedMessage.content,  // Use the modified content here
             done: true,
         };
     
         this.doc.addMessage(message);
     
-        const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
-        messages.push(message);
+        // Process the user's message content with the Interaction-Handler
+        const processedContent = processMessage(userSubmittedMessage.content);
+        console.log("After processing:", processedContent);
+
+        const messageProcessed = {...message};
+        messageProcessed.content = processedContent;
+
+        const messagesProcessed: Message[] = this.doc.getMessagesPrecedingMessage(messageProcessed.chatID, messageProcessed.id);
+        messagesProcessed.push(messageProcessed);
     
-        await this.getReply(messages, userSubmittedMessage.requestedParameters);
+        await this.getReply(messagesProcessed, userSubmittedMessage.requestedParameters);
     }
-    
     
 
     public async regenerate(message: Message, requestedParameters: Parameters) {
