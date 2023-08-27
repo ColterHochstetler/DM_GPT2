@@ -50,8 +50,7 @@ abstract class Agent<T> {
         chatID: string, 
         message: string, 
         parameters: Parameters, 
-        currentChatLeafId?: string | undefined, 
-        shouldPublish: boolean = true,
+        currentChatLeafId?: string | undefined,
     ): void {
         const processedMessage = this.preprocessMessage(message);
         
@@ -60,7 +59,7 @@ abstract class Agent<T> {
             content: processedMessage.trim(),
             requestedParameters: parameters,
             parentID: currentChatLeafId
-        }, shouldPublish, this.postprocessMessage.bind(this));
+        }, true, this.postprocessMessage.bind(this));
     }    
 }
 
@@ -88,8 +87,22 @@ class PostProcessingAgent extends Agent<any> {
         console.log('StreamingAgentPostprocess ', response);
     }
 
-    // If there's any additional logic specific to StreamingAgent, you can override the sendMessage method here.
-    // Otherwise, you can omit it, and the base class's sendMessage method will be used.
+    sendMessage(
+        chatID: string, 
+        message: string, 
+        parameters: Parameters, 
+        currentChatLeafId?: string | undefined, 
+    ): void {
+        const processedMessage = this.preprocessMessage(message);
+        
+        this.chatManager.sendMessage({
+            chatID: chatID,
+            content: processedMessage.trim(),
+            requestedParameters: parameters,
+            parentID: currentChatLeafId
+        }, false, this.postprocessMessage.bind(this));
+    }    
+
 }
 
 
@@ -185,7 +198,6 @@ export function useCreateAppContext(): Context {
                 apiKey: openaiApiKey,
             },
             currentChat.leaf?.id,
-            true // will publish the message to chat
         );
     
         return id;
