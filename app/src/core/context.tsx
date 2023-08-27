@@ -35,6 +35,81 @@ const backend = new Backend(chatManager);
 
 let intl: IntlShape;
 
+// AGENTS
+abstract class Agent<T> {
+    protected chatManager: ChatManager;
+
+    constructor(chatManager: ChatManager) {
+        this.chatManager = chatManager;
+    }
+
+    abstract preprocessMessage(message: string): string;
+    abstract postprocessMessage(response: any): any;
+
+    async sendMessage(message: string, chatID: string, parameters: T): Promise<any> {
+        const processedMessage = this.preprocessMessage(message);
+        return processedMessage;
+    }
+}
+
+class StreamingAgent extends Agent<any> { // Using 'any' here for maximum flexibility
+    preprocessMessage(message: string): string {
+        return message;
+    }
+
+    postprocessMessage(response: any): any {
+        return response;
+    }
+
+    async sendMessage(message: string, chatID: string, parameters: any): Promise<any> {
+        const processedMessage = this.preprocessMessage(message);
+
+        this.chatManager.sendMessage({
+            chatID: chatID,
+            content: processedMessage,
+            ...parameters // Spread the parameters directly
+        });
+
+        return processedMessage;
+    }
+}
+
+
+
+/* class FullReplyAgent extends Agent<any> { // Using 'any' for maximum flexibility
+    preprocessMessage(message: string): string {
+        return message;
+    }
+
+    postprocessMessage(response: any): any {
+        // Logic for postprocessing the response for FullReplyAgent
+        // This can involve logging, analytics, or other operations that don't involve the user
+        return;
+    }
+
+    async sendMessage(message: string, chatID: string, parameters: any): Promise<any> {
+        const processedMessage = this.preprocessMessage(message);
+
+        // Use the chatManager's sendMessage method directly
+        this.chatManager.sendMessage({
+            chatID: chatID,
+            content: processedMessage,
+            ...parameters // Spread the parameters directly
+        });
+
+        // Assuming you have a method or logic to wait for the entire reply to complete
+        const fullReply = await // logic to get the full reply; NEED TO ENGINEER
+
+        // Postprocess the full reply
+        this.postprocessMessage(fullReply);
+
+        return processedMessage;
+    }
+} */
+
+
+
+
 export function useCreateAppContext(): Context {
     const { id: _id } = useParams();
     const [nextID, setNextID] = useState(uuidv4());
@@ -51,6 +126,10 @@ export function useCreateAppContext(): Context {
     const currentChat = useChat(chatManager, id, isShare);
     const [authenticated, setAuthenticated] = useState(backend?.isAuthenticated || false);
     const [wasAuthenticated, setWasAuthenticated] = useState(backend?.isAuthenticated || false);
+
+    const narrativeAgent = new StreamingAgent(chatManager);
+
+
 
     useEffect(() => {
         chatManager.on('y-update', update => backend?.receiveYUpdate(update))
@@ -81,29 +160,30 @@ export function useCreateAppContext(): Context {
         if (isShare) {
             return false;
         }
-
-        if (!message?.trim().length) {
+    
+        const trimmedMessage = message?.trim();
+        if (!trimmedMessage) {
             return false;
         }
-
-        // const openaiApiKey = store.getState().apiKeys.openAIApiKey;
+    
         const openaiApiKey = chatManager.options.getOption<string>('openai', 'apiKey');
-
+    
         if (!openaiApiKey && !isProxySupported()) {
             dispatch(openOpenAIApiKeyPanel());
             return false;
         }
-
+    
         const parameters: Parameters = {
             model: chatManager.options.getOption<string>('parameters', 'model', id),
             temperature: chatManager.options.getOption<number>('parameters', 'temperature', id),
         };
+    
+        console.log("******** Message Parameters:", parameters);
 
         if (id === nextID) {
             setNextID(uuidv4());
-
+    
             const autoPlay = chatManager.options.getOption<boolean>('tts', 'autoplay');
-
             if (autoPlay) {
                 const ttsService = chatManager.options.getOption<string>('tts', 'service');
                 if (ttsService === 'web-speech') {
@@ -113,31 +193,18 @@ export function useCreateAppContext(): Context {
                 }
             }
         }
-
-        // if (chatManager.has(id)) {
-            // chatManager.sendMessage({
-            //     chatID: id,
-            //     content: message.trim(),
-            //     requestedParameters: {
-            //         ...parameters,
-            //         apiKey: openaiApiKey,
-            //     },
-            //     parentID: currentChat.leaf?.id,
-            // });
-        // } else {
-        //     await chatManager.createChat(id);
-
-            chatManager.sendMessage({
-                chatID: id,
-                content: message.trim(),
-                requestedParameters: {
-                    ...parameters,
-                    apiKey: openaiApiKey,
-                },
-                parentID: currentChat.leaf?.id,
-            });
-        // }
-
+    
+        // Use the agent to send the message and handle the reply
+        await narrativeAgent.sendMessage(
+            trimmedMessage,
+            id,
+            {
+                ...parameters,
+                apiKey: openaiApiKey,
+                parentID: currentChat.leaf?.id
+            }
+        );
+    
         return id;
     }, [dispatch, id, currentChat.leaf, isShare]);
 

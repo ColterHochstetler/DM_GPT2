@@ -13,7 +13,6 @@ import { Option } from './options/option';
 import { pluginMetadata } from './plugins/metadata';
 import { pluginRunner } from "./plugins/plugin-runner";
 import { createBasicPluginContext } from './plugins/plugin-context';
-import { processMessage } from './ih/ih-main';
 
 export const channel = new BroadcastChannel('chats');
 
@@ -162,35 +161,27 @@ export class ChatManager extends EventEmitter {
     
     public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
-    
 
         if (!chat) {
             throw new Error('Chat not found');
         }
-    
+
         const message: Message = {
             id: uuidv4(),
             parentID: userSubmittedMessage.parentID,
             chatID: userSubmittedMessage.chatID,
             timestamp: Date.now(),
             role: 'user',
-            content: userSubmittedMessage.content,  // Use the modified content here
+            content: userSubmittedMessage.content,
             done: true,
         };
-    
+
         this.doc.addMessage(message);
-    
-        // Process the user's message content with the Interaction-Handler
-        const processedContent = processMessage(userSubmittedMessage.content);
-        console.log("After processing:", processedContent);
 
-        const messageProcessed = {...message};
-        messageProcessed.content = processedContent;
+        const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
+        messages.push(message);
 
-        const messagesProcessed: Message[] = this.doc.getMessagesPrecedingMessage(messageProcessed.chatID, messageProcessed.id);
-        messagesProcessed.push(messageProcessed);
-    
-        await this.getReply(messagesProcessed, userSubmittedMessage.requestedParameters);
+        await this.getReply(messages, userSubmittedMessage.requestedParameters);
     }
     
 
