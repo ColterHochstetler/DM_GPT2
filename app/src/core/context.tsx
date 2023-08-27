@@ -5,7 +5,7 @@ import { Backend, User } from "./backend";
 import { ChatManager } from "./";
 import { useAppDispatch } from "../store";
 import { openOpenAIApiKeyPanel } from "../store/settings-ui";
-import { Message, Parameters } from "./chat/types";
+import { Message, Parameters, UserSubmittedMessage } from "./chat/types";
 import { useChat, UseChatResult } from "./chat/use-chat";
 import { TTSContextProvider } from "./tts/use-tts";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -46,33 +46,38 @@ abstract class Agent<T> {
     abstract preprocessMessage(message: string): string;
     abstract postprocessMessage(response: any): any;
 
-    async sendMessage(message: string, chatID: string, parameters: T, shouldPublish: boolean = true): Promise<any> {
-        const processedMessage = this.preprocessMessage(message);
-        return processedMessage;
-    }
-}
-
-class StreamingAgent extends Agent<any> { // Using 'any' here for maximum flexibility
-    preprocessMessage(message: string): string {
-        return message;
-    }
-
-    postprocessMessage(response: any): any {
-        return response;
-    }
-
-    async sendMessage(message: string, chatID: string, parameters: any, shouldPublish: boolean = true): Promise<any> {
+    async sendMessage(
+        chatID: string, 
+        message: string, 
+        parameters: Parameters, 
+        currentChatLeafId?: string | undefined, 
+        shouldPublish: boolean = true
+    ): Promise<any> {
         const processedMessage = this.preprocessMessage(message);
     
         this.chatManager.sendMessage({
             chatID: chatID,
-            content: processedMessage,
+            content: processedMessage.trim(),
             requestedParameters: parameters,
-        }, shouldPublish); // Pass the shouldPublish parameter here
+            parentID: currentChatLeafId
+        }, shouldPublish);
     
         return processedMessage;
     }
-} 
+}
+
+class StreamingAgent extends Agent<any> {
+    preprocessMessage(message: string): string {
+        return message; // You can modify this if the StreamingAgent has a different preprocessing logic
+    }
+
+    postprocessMessage(response: any): any {
+        return response; // Similarly, modify this if the StreamingAgent has a different postprocessing logic
+    }
+
+    // If there's any additional logic specific to StreamingAgent, you can override the sendMessage method here.
+    // Otherwise, you can omit it, and the base class's sendMessage method will be used.
+}
 
 
 export function useCreateAppContext(): Context {
@@ -157,16 +162,17 @@ export function useCreateAppContext(): Context {
             }
         }
 
-
         // Use the agent to send the message and handle the reply
+ 
         await narrativeAgent.sendMessage(
-            trimmedMessage,
             id,
+            trimmedMessage,
             {
                 ...parameters,
                 apiKey: openaiApiKey,
-                parentID: currentChat.leaf?.id
-            }, true // will publish the message to chat
+            },
+            currentChat.leaf?.id,
+            true // will publish the message to chat
         );
     
         return id;

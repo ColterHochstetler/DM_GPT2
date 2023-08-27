@@ -3,6 +3,7 @@ import { Configuration, OpenAIApi } from "openai";
 import SSE from "../utils/sse";
 import { OpenAIMessage, Parameters } from "./types";
 import { backend } from "../backend";
+
 export const defaultModel = 'gpt-3.5-turbo';
 
 export function isProxySupported() {
@@ -49,7 +50,6 @@ function parseResponseChunk(buffer: any): OpenAIResponseChunk {
     };
 }
 
-
 export async function createChatCompletion(messages: OpenAIMessage[], parameters: Parameters): Promise<string> {
     const proxied = shouldUseProxy(parameters.apiKey);
     const endpoint = getEndpoint(proxied);
@@ -76,7 +76,6 @@ export async function createChatCompletion(messages: OpenAIMessage[], parameters
 
     return data.choices[0].message?.content?.trim() || '';
 }
-
 
 export async function createStreamingChatCompletion(messages: OpenAIMessage[], parameters: Parameters) {
     const emitter = new EventEmitter();
