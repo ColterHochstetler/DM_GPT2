@@ -45,26 +45,29 @@ abstract class Agent<T> {
 
     abstract preprocessMessage(message: string): string;
     abstract postprocessMessage(response: any): any;
+    abstract generatePrefix(): string;
 
     sendMessage(
         chatID: string, 
         message: string, 
         parameters: Parameters, 
+        shouldPublish: boolean,
         currentChatLeafId?: string | undefined,
     ): void {
         const processedMessage = this.preprocessMessage(message);
-        
+        const prefix = this.generatePrefix();
+
         this.chatManager.sendMessage({
             chatID: chatID,
             content: processedMessage.trim(),
             requestedParameters: parameters,
             parentID: currentChatLeafId
-        }, true, this.postprocessMessage.bind(this));
+        }, shouldPublish, prefix, this.postprocessMessage.bind(this));
     }    
 }
 
 // Streams content to chat
-class StreamingAgent extends Agent<any> {
+class StreamingAgentTemplate extends Agent<any> {
     preprocessMessage(message: string): string {
         return message; // You can modify this if the StreamingAgent has a different preprocessing logic
     }
@@ -73,38 +76,50 @@ class StreamingAgent extends Agent<any> {
 
     }
 
-    // If there's any additional logic specific to StreamingAgent, you can override the sendMessage method here.
-    // Otherwise, you can omit it, and the base class's sendMessage method will be used.
+    generatePrefix(): string {
+        return 'This is my prefix test: '; // You can modify this if the StreamingAgent has a different prefix logic
+    }
+
 }
 
-// Gets content from an LLM and runs functions on it. Not shown to user.
-class PostProcessingAgent extends Agent<any> {
+class SummaryAgentTemplate extends Agent<any> {
     preprocessMessage(message: string): string {
-        return message; // You can modify this if the StreamingAgent has a different preprocessing logic
+        //const summaryInstructions = 'summarize the following text using shorthand. Focus on the emotional experiences of the character, and anything that would help a dungeon master tell a compelling story.'
+    
+        const summaryInstructions = 'I am an api that requests summaries. Please summarize this:'
+
+        return summaryInstructions + ' \n\n ' + message;
     }
 
     postprocessMessage(response: any): any {
-        console.log('StreamingAgentPostprocess ', response);
+        console.log('SummaryAgentPostprocess ', response);
     }
+
+    generatePrefix(): string {
+        return ''; // You can modify this if the StreamingAgent has a different prefix logic
+    }
+
 
     sendMessage(
         chatID: string, 
         message: string, 
         parameters: Parameters, 
-        currentChatLeafId?: string | undefined, 
+        shouldPublish: boolean,
+        currentChatLeafId?: string | undefined,
     ): void {
         const processedMessage = this.preprocessMessage(message);
+        const prefix = this.generatePrefix();
         
+        parameters.model = "gpt-3.5-turbo-16k"
+
         this.chatManager.sendMessage({
             chatID: chatID,
             content: processedMessage.trim(),
             requestedParameters: parameters,
             parentID: currentChatLeafId
-        }, false, this.postprocessMessage.bind(this));
-    }    
-
+        }, shouldPublish, prefix, this.postprocessMessage.bind(this));
+    }  
 }
-
 
 export function useCreateAppContext(): Context {
     const { id: _id } = useParams();
@@ -123,8 +138,8 @@ export function useCreateAppContext(): Context {
     const [authenticated, setAuthenticated] = useState(backend?.isAuthenticated || false);
     const [wasAuthenticated, setWasAuthenticated] = useState(backend?.isAuthenticated || false);
 
-    const narrativeAgent = new StreamingAgent(chatManager);
-
+    const narrativeAgent = new StreamingAgentTemplate (chatManager);
+    const summaryAgent = new SummaryAgentTemplate(chatManager);
 
 
     useEffect(() => {
@@ -196,9 +211,19 @@ export function useCreateAppContext(): Context {
             {
                 ...parameters,
                 apiKey: openaiApiKey,
-            },
+            }, true,
             currentChat.leaf?.id,
         );
+
+/*         summaryAgent.sendMessage(
+            id,
+            "",
+            {
+                ...parameters,
+                apiKey: openaiApiKey,
+            }, false,
+            currentChat.leaf?.id,
+        ); */
     
         return id;
     }, [dispatch, id, currentChat.leaf, isShare]);

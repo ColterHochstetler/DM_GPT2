@@ -82,6 +82,7 @@ export class YChat {
         this.content.set(messageID, new Y.Text(value));
     }
 
+    
     public getMessageContent(messageID: string) {
         return this.pendingContent.get(messageID) || this.content.get(messageID)?.toString() || "";
     }
@@ -275,6 +276,17 @@ export class YChatDoc extends EventEmitter {
             : [];
 
         return messages;
+    }
+
+    public getMessageByID(chatID: string, messageID: string): Message {
+        const tree = this.getMessageTree(chatID);
+        const message = tree.get(messageID);
+    
+        if (!message) {
+            throw new Error("message not found: " + messageID);
+        }
+    
+        return message;
     }
 
     public getChat(id: string): Chat {

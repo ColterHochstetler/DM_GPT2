@@ -134,8 +134,9 @@ export class ChatManager extends EventEmitter {
     }
 
     
-    public async sendMessage(userSubmittedMessage: UserSubmittedMessage, shouldPublish: boolean = true, agentCallback?: Function) {
+    public async sendMessage(userSubmittedMessage: UserSubmittedMessage, shouldPublish: boolean = true, messageprefix?: string, agentCallback?: Function) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
+
 
         if (!chat) {
             throw new Error('Chat not found');
@@ -158,7 +159,6 @@ export class ChatManager extends EventEmitter {
 
         await this.getReply(messages, userSubmittedMessage.requestedParameters, shouldPublish, agentCallback);
     }
-    
 
     public async regenerate(message: Message, requestedParameters: Parameters) {
         const messages = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
@@ -174,6 +174,8 @@ export class ChatManager extends EventEmitter {
         if (!chat) {
             throw new Error('Chat not found');
         }
+
+        console.log('getReply latest message: ', latestMessage)
 
         const message: Message = {
             id: uuidv4(),
