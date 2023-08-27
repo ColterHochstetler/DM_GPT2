@@ -137,7 +137,6 @@ export class ChatManager extends EventEmitter {
     public async sendMessage(userSubmittedMessage: UserSubmittedMessage, shouldPublish: boolean = true, agentCallback?: Function) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
 
-
         if (!chat) {
             throw new Error('Chat not found');
         }
@@ -171,8 +170,7 @@ export class ChatManager extends EventEmitter {
         const chatID = latestMessage.chatID;
         const parentID = latestMessage.id;
         const chat = this.doc.getYChat(latestMessage.chatID);
-
-        
+  
         if (!chat) {
             throw new Error('Chat not found');
         }

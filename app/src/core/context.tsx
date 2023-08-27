@@ -35,8 +35,7 @@ const backend = new Backend(chatManager);
 
 let intl: IntlShape;
 
-// AGENTS: Handles communication to LLMs 
-// 
+// AGENTS: Handles preparing custom function to communicate LLMs 
 abstract class Agent<T> {
     protected chatManager: ChatManager;
 
@@ -53,7 +52,6 @@ abstract class Agent<T> {
         parameters: Parameters, 
         currentChatLeafId?: string | undefined, 
         shouldPublish: boolean = true,
-        postprocessCallback?: (response: any) => any 
     ): void {
         const processedMessage = this.preprocessMessage(message);
         
@@ -62,7 +60,7 @@ abstract class Agent<T> {
             content: processedMessage.trim(),
             requestedParameters: parameters,
             parentID: currentChatLeafId
-        }, shouldPublish, postprocessCallback);
+        }, shouldPublish, this.postprocessMessage.bind(this));
     }    
 }
 
@@ -73,7 +71,7 @@ class StreamingAgent extends Agent<any> {
     }
 
     postprocessMessage(response: any): any {
-        return response; // Similarly, modify this if the StreamingAgent has a different postprocessing logic
+
     }
 
     // If there's any additional logic specific to StreamingAgent, you can override the sendMessage method here.
@@ -87,7 +85,7 @@ class PostProcessingAgent extends Agent<any> {
     }
 
     postprocessMessage(response: any): any {
-        return response; // Similarly, modify this if the StreamingAgent has a different postprocessing logic
+        console.log('StreamingAgentPostprocess ', response);
     }
 
     // If there's any additional logic specific to StreamingAgent, you can override the sendMessage method here.
@@ -179,7 +177,7 @@ export function useCreateAppContext(): Context {
 
         // Use the agent to send the message and handle the reply
  
-        await narrativeAgent.sendMessage(
+        narrativeAgent.sendMessage(
             id,
             trimmedMessage,
             {

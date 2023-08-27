@@ -157,6 +157,7 @@ export class ReplyRequest extends EventEmitter {
         });
 
         if (this.agentCallback) {
+            console.log("agent callback attempt is running")
             this.agentCallback(this.content);
         }
     
