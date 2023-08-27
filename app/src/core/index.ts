@@ -133,31 +133,6 @@ export class ChatManager extends EventEmitter {
         }
     }
 
-
-/*     public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
-        const chat = this.doc.getYChat(userSubmittedMessage.chatID);
-
-        if (!chat) {
-            throw new Error('Chat not found');
-        }
-    
-        const message: Message = {
-            id: uuidv4(),
-            parentID: userSubmittedMessage.parentID,
-            chatID: userSubmittedMessage.chatID,
-            timestamp: Date.now(),
-            role: 'user',
-            content: userSubmittedMessage.content,  // Use the modified content here
-            done: true,
-        };
-    
-        this.doc.addMessage(message);
-
-        const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
-        messages.push(message);
-    
-        await this.getReply(messages, userSubmittedMessage.requestedParameters);
-    } */
     
     public async sendMessage(userSubmittedMessage: UserSubmittedMessage, shouldPublish: boolean = true, agentCallback?: Function) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
@@ -182,7 +157,7 @@ export class ChatManager extends EventEmitter {
         const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
         messages.push(message);
 
-        await this.getReply(messages, userSubmittedMessage.requestedParameters, shouldPublish, agentCallback); // Default to true
+        await this.getReply(messages, userSubmittedMessage.requestedParameters, shouldPublish, agentCallback);
     }
     
 
