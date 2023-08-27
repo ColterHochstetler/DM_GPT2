@@ -35,7 +35,8 @@ const backend = new Backend(chatManager);
 
 let intl: IntlShape;
 
-// AGENTS
+// AGENTS: Handles communication to LLMs 
+// 
 abstract class Agent<T> {
     protected chatManager: ChatManager;
 
@@ -46,27 +47,41 @@ abstract class Agent<T> {
     abstract preprocessMessage(message: string): string;
     abstract postprocessMessage(response: any): any;
 
-    async sendMessage(
+    sendMessage(
         chatID: string, 
         message: string, 
         parameters: Parameters, 
         currentChatLeafId?: string | undefined, 
-        shouldPublish: boolean = true
-    ): Promise<any> {
+        shouldPublish: boolean = true,
+        postprocessCallback?: (response: any) => any 
+    ): void {
         const processedMessage = this.preprocessMessage(message);
-    
+        
         this.chatManager.sendMessage({
             chatID: chatID,
             content: processedMessage.trim(),
             requestedParameters: parameters,
             parentID: currentChatLeafId
-        }, shouldPublish);
-    
-        return processedMessage;
-    }
+        }, shouldPublish, postprocessCallback);
+    }    
 }
 
+// Streams content to chat
 class StreamingAgent extends Agent<any> {
+    preprocessMessage(message: string): string {
+        return message; // You can modify this if the StreamingAgent has a different preprocessing logic
+    }
+
+    postprocessMessage(response: any): any {
+        return response; // Similarly, modify this if the StreamingAgent has a different postprocessing logic
+    }
+
+    // If there's any additional logic specific to StreamingAgent, you can override the sendMessage method here.
+    // Otherwise, you can omit it, and the base class's sendMessage method will be used.
+}
+
+// Gets content from an LLM and runs functions on it. Not shown to user.
+class PostProcessingAgent extends Agent<any> {
     preprocessMessage(message: string): string {
         return message; // You can modify this if the StreamingAgent has a different preprocessing logic
     }
