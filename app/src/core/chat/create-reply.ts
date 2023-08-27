@@ -16,13 +16,15 @@ export class ReplyRequest extends EventEmitter {
     private content = '';
     private cancelSSE: any;
 
+
     constructor(private chat: Chat,
                 private yChat: YChat,
                 private messages: Message[],
                 private replyID: string,
                 private requestedParameters: Parameters,
                 private pluginOptions: OptionsManager,
-                private shouldPublish: boolean = false // default to true to maintain current behavior
+                private shouldPublish: boolean = false,
+                private agentCallback?: Function
                 ) {
         super();
         this.mutatedMessages = [...messages];
@@ -143,7 +145,7 @@ export class ReplyRequest extends EventEmitter {
         this.done = true;
         this.emit('done');
     
-        this.yChat.onMessageDone(this.replyID);
+        this.yChat.onMessageDone(this.replyID); //MAYBE DISABLE IF NOT PUBLISHING?
     
         await pluginRunner("postprocess-model-output", this.pluginContext, async plugin => {
             const output = await plugin.postprocessModelOutput({
@@ -153,6 +155,10 @@ export class ReplyRequest extends EventEmitter {
     
             this.content = output.content;
         });
+
+        if (this.agentCallback) {
+            this.agentCallback(this.content);
+        }
     
         if (this.shouldPublish) {
             this.yChat.setMessageContent(this.replyID, this.content);

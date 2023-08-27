@@ -159,7 +159,7 @@ export class ChatManager extends EventEmitter {
         await this.getReply(messages, userSubmittedMessage.requestedParameters);
     } */
     
-    public async sendMessage(userSubmittedMessage: UserSubmittedMessage, shouldPublish: boolean = true) {
+    public async sendMessage(userSubmittedMessage: UserSubmittedMessage, shouldPublish: boolean = true, agentCallback?: Function) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
 
 
@@ -182,7 +182,7 @@ export class ChatManager extends EventEmitter {
         const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
         messages.push(message);
 
-        await this.getReply(messages, userSubmittedMessage.requestedParameters, shouldPublish); // Default to true
+        await this.getReply(messages, userSubmittedMessage.requestedParameters, shouldPublish, agentCallback); // Default to true
     }
     
 
@@ -191,7 +191,7 @@ export class ChatManager extends EventEmitter {
         await this.getReply(messages, requestedParameters, true);
     }
 
-    private async getReply(messages: Message[], requestedParameters: Parameters, shouldPublish: boolean) {
+    private async getReply(messages: Message[], requestedParameters: Parameters, shouldPublish: boolean, agentCallback?: Function) {
         const latestMessage = messages[messages.length - 1];
         const chatID = latestMessage.chatID;
         const parentID = latestMessage.id;
@@ -216,7 +216,7 @@ export class ChatManager extends EventEmitter {
 
         this.doc.addMessage(message);
 
-        const request = new ReplyRequest(this.get(chatID), chat, messages, message.id, requestedParameters, this.options, shouldPublish);
+        const request = new ReplyRequest(this.get(chatID), chat, messages, message.id, requestedParameters, this.options, shouldPublish, agentCallback);
         request.on('done', () => this.activeReplies.delete(message.id));
         request.execute();
 
