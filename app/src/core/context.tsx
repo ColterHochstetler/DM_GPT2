@@ -63,15 +63,16 @@ class StreamingAgent extends Agent<any> { // Using 'any' here for maximum flexib
 
     async sendMessage(message: string, chatID: string, parameters: any): Promise<any> {
         const processedMessage = this.preprocessMessage(message);
-
+    
         this.chatManager.sendMessage({
             chatID: chatID,
             content: processedMessage,
-            ...parameters // Spread the parameters directly
+            requestedParameters: parameters, // Nest the parameters under 'requestedParameters'
         });
-
+    
         return processedMessage;
     }
+    
 }
 
 
@@ -177,8 +178,6 @@ export function useCreateAppContext(): Context {
             model: chatManager.options.getOption<string>('parameters', 'model', id),
             temperature: chatManager.options.getOption<number>('parameters', 'temperature', id),
         };
-    
-        console.log("******** Message Parameters:", parameters);
 
         if (id === nextID) {
             setNextID(uuidv4());
@@ -193,7 +192,8 @@ export function useCreateAppContext(): Context {
                 }
             }
         }
-    
+        console.log("parameters in onNewMessage:", parameters);
+
         // Use the agent to send the message and handle the reply
         await narrativeAgent.sendMessage(
             trimmedMessage,
@@ -207,6 +207,74 @@ export function useCreateAppContext(): Context {
     
         return id;
     }, [dispatch, id, currentChat.leaf, isShare]);
+
+/* 
+    const onNewMessage = useCallback(async (message?: string) => {
+        resetAudioContext();
+        
+        if (isShare) {
+            return false;
+        }
+
+        if (!message?.trim().length) {
+            return false;
+        }
+
+        // const openaiApiKey = store.getState().apiKeys.openAIApiKey;
+        const openaiApiKey = chatManager.options.getOption<string>('openai', 'apiKey');
+
+        if (!openaiApiKey && !isProxySupported()) {
+            dispatch(openOpenAIApiKeyPanel());
+            return false;
+        }
+
+        const parameters: Parameters = {
+            model: chatManager.options.getOption<string>('parameters', 'model', id),
+            temperature: chatManager.options.getOption<number>('parameters', 'temperature', id),
+        };
+
+        if (id === nextID) {
+            setNextID(uuidv4());
+
+            const autoPlay = chatManager.options.getOption<boolean>('tts', 'autoplay');
+
+            if (autoPlay) {
+                const ttsService = chatManager.options.getOption<string>('tts', 'service');
+                if (ttsService === 'web-speech') {
+                    const utterance = new SpeechSynthesisUtterance('Generating');
+                    utterance.volume = 0;
+                    speechSynthesis.speak(utterance);
+                }
+            }
+        }
+
+        // if (chatManager.has(id)) {
+            // chatManager.sendMessage({
+            //     chatID: id,
+            //     content: message.trim(),
+            //     requestedParameters: {
+            //         ...parameters,
+            //         apiKey: openaiApiKey,
+            //     },
+            //     parentID: currentChat.leaf?.id,
+            // });
+        // } else {
+        //     await chatManager.createChat(id);
+
+            chatManager.sendMessage({
+                chatID: id,
+                content: message.trim(),
+                requestedParameters: {
+                    ...parameters,
+                    apiKey: openaiApiKey,
+                },
+                parentID: currentChat.leaf?.id,
+            });
+        // }
+
+        return id;
+    }, [dispatch, id, currentChat.leaf, isShare]);
+ */
 
     const regenerateMessage = useCallback(async (message: Message) => {
         resetAudioContext();

@@ -162,6 +162,8 @@ export class ChatManager extends EventEmitter {
     public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
 
+        console.log("requestedParameters in sendMessage:", userSubmittedMessage.requestedParameters);
+
         if (!chat) {
             throw new Error('Chat not found');
         }
