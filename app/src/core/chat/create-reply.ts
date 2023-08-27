@@ -21,12 +21,15 @@ export class ReplyRequest extends EventEmitter {
                 private messages: Message[],
                 private replyID: string,
                 private requestedParameters: Parameters,
-                private pluginOptions: OptionsManager) {
+                private pluginOptions: OptionsManager,
+                private shouldPublish: boolean = false // default to true to maintain current behavior
+                ) {
         super();
         this.mutatedMessages = [...messages];
         this.mutatedMessages = messages.map(m => getOpenAIMessageFromMessage(m));
         this.mutatedParameters = { ...requestedParameters };
         delete this.mutatedParameters.apiKey;
+        this.shouldPublish = shouldPublish;
     }
 
     pluginContext = (pluginID: string) => ({
@@ -111,22 +114,25 @@ export class ReplyRequest extends EventEmitter {
         if (this.done) {
             return;
         }
-
+    
         this.lastChunkReceivedAt = Date.now();
-
+    
         this.content = value;
-
+    
         await pluginRunner("postprocess-model-output", this.pluginContext, async plugin => {
             const output = await plugin.postprocessModelOutput({
                 role: 'assistant',
                 content: this.content,
             }, this.mutatedMessages, this.mutatedParameters, false);
-
+    
             this.content = output.content;
         });
-
-        this.yChat.setPendingMessageContent(this.replyID, this.content);
+    
+        if (this.shouldPublish) {
+            this.yChat.setPendingMessageContent(this.replyID, this.content);
+        }
     }
+    
 
     public async onDone() {
         if (this.done) {
@@ -136,20 +142,25 @@ export class ReplyRequest extends EventEmitter {
         this.lastChunkReceivedAt = Date.now();
         this.done = true;
         this.emit('done');
-
+    
         this.yChat.onMessageDone(this.replyID);
-
+    
         await pluginRunner("postprocess-model-output", this.pluginContext, async plugin => {
             const output = await plugin.postprocessModelOutput({
                 role: 'assistant',
                 content: this.content,
             }, this.mutatedMessages, this.mutatedParameters, true);
-
+    
             this.content = output.content;
         });
-
-        this.yChat.setMessageContent(this.replyID, this.content);
+    
+        if (this.shouldPublish) {
+            this.yChat.setMessageContent(this.replyID, this.content);
+        } else {
+            console.log(this.content)
+        }
     }
+    
 
     public async onError(error: string) {
         if (this.done) {

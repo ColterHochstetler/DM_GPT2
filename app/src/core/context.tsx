@@ -46,7 +46,7 @@ abstract class Agent<T> {
     abstract preprocessMessage(message: string): string;
     abstract postprocessMessage(response: any): any;
 
-    async sendMessage(message: string, chatID: string, parameters: T): Promise<any> {
+    async sendMessage(message: string, chatID: string, parameters: T, shouldPublish: boolean = true): Promise<any> {
         const processedMessage = this.preprocessMessage(message);
         return processedMessage;
     }
@@ -61,18 +61,17 @@ class StreamingAgent extends Agent<any> { // Using 'any' here for maximum flexib
         return response;
     }
 
-    async sendMessage(message: string, chatID: string, parameters: any): Promise<any> {
+    async sendMessage(message: string, chatID: string, parameters: any, shouldPublish: boolean = true): Promise<any> {
         const processedMessage = this.preprocessMessage(message);
     
         this.chatManager.sendMessage({
             chatID: chatID,
             content: processedMessage,
-            requestedParameters: parameters, // Nest the parameters under 'requestedParameters'
-        });
+            requestedParameters: parameters,
+        }, shouldPublish); // Pass the shouldPublish parameter here
     
         return processedMessage;
     }
-    
 }
 
 
@@ -192,7 +191,7 @@ export function useCreateAppContext(): Context {
                 }
             }
         }
-        console.log("parameters in onNewMessage:", parameters);
+
 
         // Use the agent to send the message and handle the reply
         await narrativeAgent.sendMessage(
@@ -202,7 +201,7 @@ export function useCreateAppContext(): Context {
                 ...parameters,
                 apiKey: openaiApiKey,
                 parentID: currentChat.leaf?.id
-            }
+            }, true // will publish the message to chat
         );
     
         return id;

@@ -159,10 +159,9 @@ export class ChatManager extends EventEmitter {
         await this.getReply(messages, userSubmittedMessage.requestedParameters);
     } */
     
-    public async sendMessage(userSubmittedMessage: UserSubmittedMessage) {
+    public async sendMessage(userSubmittedMessage: UserSubmittedMessage, shouldPublish: boolean = true) {
         const chat = this.doc.getYChat(userSubmittedMessage.chatID);
 
-        console.log("requestedParameters in sendMessage:", userSubmittedMessage.requestedParameters);
 
         if (!chat) {
             throw new Error('Chat not found');
@@ -183,21 +182,22 @@ export class ChatManager extends EventEmitter {
         const messages: Message[] = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
         messages.push(message);
 
-        await this.getReply(messages, userSubmittedMessage.requestedParameters);
+        await this.getReply(messages, userSubmittedMessage.requestedParameters, shouldPublish); // Default to true
     }
     
 
     public async regenerate(message: Message, requestedParameters: Parameters) {
         const messages = this.doc.getMessagesPrecedingMessage(message.chatID, message.id);
-        await this.getReply(messages, requestedParameters);
+        await this.getReply(messages, requestedParameters, true);
     }
 
-    private async getReply(messages: Message[], requestedParameters: Parameters) {
+    private async getReply(messages: Message[], requestedParameters: Parameters, shouldPublish: boolean) {
         const latestMessage = messages[messages.length - 1];
         const chatID = latestMessage.chatID;
         const parentID = latestMessage.id;
         const chat = this.doc.getYChat(latestMessage.chatID);
 
+        
         if (!chat) {
             throw new Error('Chat not found');
         }
@@ -216,12 +216,13 @@ export class ChatManager extends EventEmitter {
 
         this.doc.addMessage(message);
 
-        const request = new ReplyRequest(this.get(chatID), chat, messages, message.id, requestedParameters, this.options);
+        const request = new ReplyRequest(this.get(chatID), chat, messages, message.id, requestedParameters, this.options, shouldPublish);
         request.on('done', () => this.activeReplies.delete(message.id));
         request.execute();
 
         this.activeReplies.set(message.id, request);
     }
+
 
     public cancelReply(chatID: string | undefined, id: string) {
         this.activeReplies.get(id)?.onCancel();
